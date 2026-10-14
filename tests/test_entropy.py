@@ -1,6 +1,8 @@
 # Copyright (C) Dnspython Contributors, see LICENSE for text of ISC license
 
+import hashlib
 import unittest
+from unittest import mock
 
 import dns.entropy
 
@@ -8,6 +10,11 @@ import dns.entropy
 
 
 class EntropyTestCase(unittest.TestCase):
+    def test_pool_hash_is_not_used_for_security(self):
+        with mock.patch("hashlib.new", wraps=hashlib.new) as new_hash:
+            dns.entropy.EntropyPool()
+        new_hash.assert_called_once_with("sha1", usedforsecurity=False)
+
     def test_pool(self):
         pool = dns.entropy.EntropyPool(b"seed-value")
         self.assertEqual(pool.random_8(), 94)
