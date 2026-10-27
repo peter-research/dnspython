@@ -122,10 +122,11 @@ DNS opcodes that do not have a more specific class.
 
    .. attribute:: index
 
-      A ``dict``, an index of RRsets in the message.  The index key is
+      A ``dict`` or ``None``, a cache of RRsets in the message.  The cache key is
       ``(section, name, rdclass, rdtype, covers, deleting)``.  The default
-      is ``{}``.  Indexing improves the performance of finding RRsets.
-      Indexing can be disabled by setting the index to ``None``.
+      is ``{}``.  The section remains authoritative, so RRsets added directly
+      to a section can still be found when they are not in the cache.  Caching
+      can be disabled by setting the index to ``None``.
 
    .. attribute:: wire
 

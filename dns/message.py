@@ -139,7 +139,7 @@ IndexKeyType = tuple[
     dns.rdatatype.RdataType | None,
     dns.rdataclass.RdataClass | None,
 ]
-IndexType = dict[IndexKeyType, dns.rrset.RRset]
+IndexType = dict[IndexKeyType, dns.rrset.RRset] | None
 SectionType = int | str | list[dns.rrset.RRset]
 
 
@@ -463,12 +463,13 @@ class Message:
         if not force_unique:
             if self.index is not None:
                 rrset = self.index.get(key)
-                if rrset is not None:
+                if rrset is not None and any(item is rrset for item in section):
                     return rrset
-            else:
-                for rrset in section:
-                    if rrset.full_match(name, rdclass, rdtype, covers, deleting):
-                        return rrset
+            for rrset in section:
+                if rrset.full_match(name, rdclass, rdtype, covers, deleting):
+                    if self.index is not None:
+                        self.index[key] = rrset
+                    return rrset
         if not create:
             raise KeyError
         rrset = dns.rrset.RRset(name, rdclass, rdtype, covers, deleting)

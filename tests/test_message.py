@@ -365,6 +365,82 @@ class MessageTestCase(unittest.TestCase):
         rrs2 = a.find_rrset(dns.message.ANSWER, n, dns.rdataclass.IN, dns.rdatatype.SOA)
         self.assertEqual(rrs1, rrs2)
 
+    def test_FindRRsetAfterDirectSectionAppend(self):
+        response = dns.message.make_response(
+            dns.message.make_query("www.example.", "A")
+        )
+        rrset = dns.rrset.from_text("www.example.", 300, "IN", "A", "192.0.2.1")
+        response.answer.append(rrset)
+
+        self.assertIs(
+            response.find_rrset(
+                response.answer,
+                "www.example.",
+                dns.rdataclass.IN,
+                dns.rdatatype.A,
+            ),
+            rrset,
+        )
+        self.assertIs(
+            response.find_rrset(
+                response.answer,
+                "www.example.",
+                dns.rdataclass.IN,
+                dns.rdatatype.A,
+                create=True,
+            ),
+            rrset,
+        )
+        self.assertEqual(len(response.answer), 1)
+
+    def test_GetRRsetAfterDirectSectionAppend(self):
+        query = dns.message.make_query("www.example.", "A")
+        response = dns.message.make_response(query)
+        rrset = dns.rrset.from_text("www.example.", 300, "IN", "A", "192.0.2.1")
+        response.answer.append(rrset)
+
+        self.assertIs(
+            response.get_rrset(
+                response.answer,
+                "www.example.",
+                dns.rdataclass.IN,
+                dns.rdatatype.A,
+            ),
+            rrset,
+        )
+        self.assertIs(
+            response.get_rrset(
+                response.question,
+                "www.example.",
+                dns.rdataclass.IN,
+                dns.rdatatype.A,
+            ),
+            query.question[0],
+        )
+
+    def test_FindRRsetAfterSectionReplacementDoesNotUseStaleIndex(self):
+        message = dns.message.Message()
+        original = message.find_rrset(
+            message.answer,
+            "www.example.",
+            dns.rdataclass.IN,
+            dns.rdatatype.A,
+            create=True,
+        )
+        replacement = dns.rrset.from_text("www.example.", 300, "IN", "A", "192.0.2.1")
+        message.answer[:] = [replacement]
+
+        self.assertIsNot(original, replacement)
+        self.assertIs(
+            message.find_rrset(
+                message.answer,
+                "www.example.",
+                dns.rdataclass.IN,
+                dns.rdatatype.A,
+            ),
+            replacement,
+        )
+
     def test_FindRRsetUnindexed(self):
         a = dns.message.from_text(answer_text)
         a.index = None
